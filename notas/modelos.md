@@ -4,7 +4,6 @@
 
 $max(w^T \mu - \lambda w^T \sum w)$
 
-
 2. seleção + alocação + rebalanceamento + entropia (sugestão do professor)
 
 $max(w^T \mu - \lambda w^T \sum w + \gamma H(w)) \mid H(w) = -\sum_{i=1}^N w_i \mathrm{ln}(w_i) $
