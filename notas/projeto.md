@@ -15,10 +15,9 @@
 - **Data:** 10/09
 - **O que:** Deﬁnição do plano de implementação do projeto, cobrindo as quatro etapas de pesquisa: aquisição de dados, modelagem matemática, arquitetura de backtest e métricas de avaliação.
 - **Como:** Documentado em `notas/projeto.md` a partir das especificações do usuário.
-- **Escolhas tomadas:** O escopo de estratégias passou a incluir também o clássico **Markowitz** (mínima variância) além dos modelos entrópicos; o *backtest* seria baseado em **rebalanceamento periódico** com janela móvel para evitar viés de *look-ahead*; as métricas escolhidas foram retorno acumulado/anualizado (Frente A), Max Drawdown e Sortino (Frente B), e Sharpe (eficiência geral).
-- **Evidência:** este arquivo (reformulado posteriormente).
+- **Escolhas tomadas:** Reestruturação completa do projeto.
 
-### 1.2. Implementação do pré-processamento (`src/dados`)
+### 1.2. Implementação do pré-processamento
 
 - **Data:** 10/09
 - **O que:** Criação do pipeline de pré-processamento dos dados brutos de criptoativos.
@@ -28,16 +27,15 @@
   - **Preço ajustado** (`auto_adjust=True` do yfinance) — mitiga correções fantasma de splits na API.
   - **Outliers preservados** (sem winsorização) — flash crashes são o objeto da análise de risco de cauda; limpar as quedas anularia o teste de estresse de Tsallis/Rényi.
   - **Alinhamento por sexta-feira (`W-FRI`)** como anchor semanal da amostra.
-- **Evidência:** `src/dados/prep.py`; saídas em `dados/prep/precos-alinhados-semanais.csv` e `dados/prep/retornos-log-semanais.csv`. O alinhamento cortou as semanas iniciais (SOL sem dados em 01/2020), iniciando a série em 04/2020 com 313 observações.
+- **Observação:** O alinhamento cortou as semanas iniciais (SOL sem dados em 01/2020), iniciando a série em 04/2020 com 313 observações.
 
 ### 1.3. Implementação do modelo benchmark 1/N
 
 - **Data:** 10/09
 - **O que:** Implementação do portfólio ingênuo de pesos iguais.
-- **Como:** `src/modelagem/ingenuo.py` define pesos determinísticos $w_i = 1/N$ (sem otimização), com funções para retorno do portfólio ($w^T r_t$) e retorno esperado ($w^T \mu$), lendo a série processada de retornos log.
+- **Como:** define pesos determinísticos $w_i = 1/N$ (sem otimização), com funções para retorno do portfólio ($w^T r_t$) e retorno esperado ($w^T \mu$), lendo a série processada de retornos log.
 - **Escolha tomada:** O 1/N é o **benchmark base** do estudo, conforme a narrativa do projeto — e não uma estratégia otimizada. Mantida a ordem canônica dos ativos (BTC, ETH, SOL, BNB).
 - **Validado:** soma dos pesos = 1,000000; retorno esperado semanal da carteira ≈ 1,05%.
-- **Evidência:** `src/modelagem/ingenuo.py`.
 
 ---
 
