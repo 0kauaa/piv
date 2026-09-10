@@ -44,7 +44,6 @@
 - **Como:** `src/modelagem/shannon.py` resolve $\max_w (-\sum w_i \ln w_i)$ sujeito a $\sum w_i = 1$, $w_i \geq 0$, $w^T\mu \geq R_{min}$.
 - **Escolha tomada:** Solução via **`scipy.optimize.minimize` (SLSQP)** — versão de solver numérico genérico, mais extensível aos demais modelos (Tsallis, Rényi, KL, Markowitz) que nem sempre têm forma fechada. O problema é convexo (minimizar $\sum w_i \ln w_i$). Dependência `scipy` adicionada ao `requirements.txt`. Restrição inativa → retorna $1/N$; $R_{min} > \max(\mu)$ → erro de factibilidade; falha numérica → `RuntimeError`.
 - **Validado:** resultados idênticos aos da solução analítica para os mesmos $R_{min}$; soma dos pesos = 1; retorno da carteira = $R_{min}$ quando a restrição é ativa.
-- **Evidência:** `src/modelagem/shannon.py`.
 
 ---
 
