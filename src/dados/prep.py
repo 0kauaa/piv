@@ -11,7 +11,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-RAIZ = Path(__file__).resolve().parents[1]
+RAIZ = Path(__file__).resolve().parents[2]
 DADOS = RAIZ / "dados"
 PASTA_BRUTOS = DADOS / "brutos"
 PASTA_PREP = DADOS / "prep"

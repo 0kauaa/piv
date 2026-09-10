@@ -2,7 +2,7 @@ import yfinance as yf
 import pandas as pd
 from pathlib import Path
 
-RAIZ = Path(__file__).resolve().parents[1]
+RAIZ = Path(__file__).resolve().parents[2]
 PASTA_BRUTOS = RAIZ / "dados" / "brutos"
 
 CRIPTO = ["BTC-USD", "ETH-USD", "SOL-USD", "BNB-USD"]
