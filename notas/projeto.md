@@ -9,7 +9,9 @@
 
 | # | Data  | Ação                                                                                                                                                                      | Evidência        |
 | - | ----- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------- |
-| 1 | 10/09 | Definição da metodologia de implementação: dados, funções objetivo (inclui Markowitz), arquitetura de backtest com rebalanceamento e métricas (MDD, Sortino, Sharpe) | este arquivo, §6 |
+| 1 | 10/09 | Definição da metodologia de implementação: dados, funções objetivo (inclui Markowitz), arquitetura de backtest com rebalanceamento e métricas (MDD, Sortino, Sharpe) | este arquivo, registro histórico |
+| 2 | 10/09 | Descarte da seção "Metodologia de Implementação"; mantida apenas a checklist (renumerada para §6) | este arquivo |
+| 3 | 10/09 | Implementação do módulo `src/prep.py` — pré-processamento: alinhamento semanal (W-FRI), forward fill, remoção sincronizada de lacunas, retornos logarítmicos | `src/prep.py`, `dados/precos-alinhados-semanais.csv`, `dados/retornos-log-semanais.csv` |
 
 ---
 
@@ -80,7 +82,7 @@ $$
 
 ## 6. Checklist de Implementação
 
-- [ ] Aquisição e pré-processamento dos dados (janela 01/04/2020–01/03/2025).
+- [x] Aquisição e pré-processamento dos dados (janela 01/04/2020–01/03/2025).
 - [ ] Implementação das funções objetivo (1/N, Markowitz, Shannon, Tsallis, Rényi, KL).
 - [ ] Arquitetura do backtest com janela móvel e rebalanceamento periódico.
 - [ ] Cálculo das métricas de desempenho (Frente A, Frente B e eficiência geral).
