@@ -5,13 +5,39 @@
 
 ---
 
-## 1. Linha do Tempo de Ações
+## 1. Registro de Ações (Diário Metodológico)
 
-| # | Data  | Ação                                                                                                                                                                      | Evidência        |
-| - | ----- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------- |
-| 1 | 10/09 | Definição da metodologia de implementação: dados, funções objetivo (inclui Markowitz), arquitetura de backtest com rebalanceamento e métricas (MDD, Sortino, Sharpe) | este arquivo, registro histórico |
-| 2 | 10/09 | Descarte da seção "Metodologia de Implementação"; mantida apenas a checklist (renumerada para §6) | este arquivo |
-| 3 | 10/09 | Implementação do módulo `src/prep.py` — pré-processamento: alinhamento semanal (W-FRI), forward fill, remoção sincronizada de lacunas, retornos logarítmicos | `src/prep.py`, `dados/precos-alinhados-semanais.csv`, `dados/retornos-log-semanais.csv` |
+> Cada entrada descreve **o que** foi feito, **como** foi feito e **quais escolhas**
+> foram tomadas, servindo de base narrativa para a seção metodológica do artigo.
+
+### 1.1. Definição da metodologia de implementação
+
+- **Data:** 10/09
+- **O que:** Deﬁnição do plano de implementação do projeto, cobrindo as quatro etapas de pesquisa: aquisição de dados, modelagem matemática, arquitetura de backtest e métricas de avaliação.
+- **Como:** Documentado em `notas/projeto.md` a partir das especificações do usuário.
+- **Escolhas tomadas:** O escopo de estratégias passou a incluir também o clássico **Markowitz** (mínima variância) além dos modelos entrópicos; o *backtest* seria baseado em **rebalanceamento periódico** com janela móvel para evitar viés de *look-ahead*; as métricas escolhidas foram retorno acumulado/anualizado (Frente A), Max Drawdown e Sortino (Frente B), e Sharpe (eficiência geral).
+- **Evidência:** este arquivo (reformulado posteriormente).
+
+### 1.2. Implementação do pré-processamento (`src/dados`)
+
+- **Data:** 10/09
+- **O que:** Criação do pipeline de pré-processamento dos dados brutos de criptoativos.
+- **Como:** O módulo `prep.py` executa, em ordem: (i) resample semanal `W-FRI` capturando o último preço válido da semana; (ii) *forward fill* para lacunas pontuais; (iii) *dropna* sincronizado para semanas sem cobertura de algum ativo; (iv) cálculo de retornos logarítmicos $\ln(P_t/P_{t-1})$.
+- **Escolhas tomadas:**
+  - **Retornos logarítmicos** em vez de simples — aditividade temporal e melhor tratamento estatístico para as estimativas de $\mu$ e covariância.
+  - **Preço ajustado** (`auto_adjust=True` do yfinance) — mitiga correções fantasma de splits na API.
+  - **Outliers preservados** (sem winsorização) — flash crashes são o objeto da análise de risco de cauda; limpar as quedas anularia o teste de estresse de Tsallis/Rényi.
+  - **Alinhamento por sexta-feira (`W-FRI`)** como anchor semanal da amostra.
+- **Evidência:** `src/dados/prep.py`; saídas em `dados/prep/precos-alinhados-semanais.csv` e `dados/prep/retornos-log-semanais.csv`. O alinhamento cortou as semanas iniciais (SOL sem dados em 01/2020), iniciando a série em 04/2020 com 313 observações.
+
+### 1.3. Implementação do modelo benchmark 1/N
+
+- **Data:** 10/09
+- **O que:** Implementação do portfólio ingênuo de pesos iguais.
+- **Como:** `src/modelagem/ingenuo.py` define pesos determinísticos $w_i = 1/N$ (sem otimização), com funções para retorno do portfólio ($w^T r_t$) e retorno esperado ($w^T \mu$), lendo a série processada de retornos log.
+- **Escolha tomada:** O 1/N é o **benchmark base** do estudo, conforme a narrativa do projeto — e não uma estratégia otimizada. Mantida a ordem canônica dos ativos (BTC, ETH, SOL, BNB).
+- **Validado:** soma dos pesos = 1,000000; retorno esperado semanal da carteira ≈ 1,05%.
+- **Evidência:** `src/modelagem/ingenuo.py`.
 
 ---
 
@@ -82,7 +108,7 @@ $$
 
 ## 6. Checklist de Implementação
 
-- [x] Aquisição e pré-processamento dos dados (janela 01/04/2020–01/03/2025).
+- [X] Aquisição e pré-processamento dos dados (janela 01/04/2020–01/03/2025).
 - [ ] Implementação das funções objetivo (1/N, Markowitz, Shannon, Tsallis, Rényi, KL).
 - [ ] Arquitetura do backtest com janela móvel e rebalanceamento periódico.
 - [ ] Cálculo das métricas de desempenho (Frente A, Frente B e eficiência geral).
