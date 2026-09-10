@@ -6,7 +6,7 @@ CRIPTO = ["BTC-USD", "ETH-USD", "SOL-USD", "BNB-USD"]
 INICIO = "2020-01-01"
 FIM = "2026-04-01"
 INTERVALO = "1wk"
-ARQUIVO = Path("dados") / "precos-semanais.csv"
+ARQUIVO = Path("../dados") / "precos-semanais.csv"
 
 def obter_precos(tickers=CRIPTO, inicio=INICIO, fim=FIM, intervalo=INTERVALO):
     preco = yf.download(
