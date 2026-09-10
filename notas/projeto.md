@@ -1,4 +1,3 @@
-
 # Proposta de Projeto de Artigo: Otimização de Portfólio em Criptomoedas via Teoria da Informação
 
 ---
@@ -33,7 +32,16 @@ O projeto compara o desempenho histórico (*backtest*) das seguintes estratégia
 
 ---
 
-## 4. O Coração Analítico: "Ganho" vs. "Perda"
+## 4. Dados (via yfinance)
+
+Cryptos: BTC, ETH, SOL, BNB
+
+**Janela Histórica:** 2020-2025
+**Janela de Avaliação:** 1º sem. 2026
+
+---
+
+## 5. O Coração Analítico: "Ganho" vs. "Perda"
 
 Para fugir de análises superficiais de rentabilidade, o estudo divide a avaliação dos resultados em duas frentes complementares:
 
@@ -49,7 +57,7 @@ Para fugir de análises superficiais de rentabilidade, o estudo divide a avalia�
 
 ---
 
-## 5. Estrutura Esperada da Seção de Resultados
+## 6. Estrutura Esperada da Seção de Resultados
 
 1. **Curvas de Retorno Acumulado:** Gráfico temporal comparativo evidenciando o crescimento do capital de cada estratégia.
 2. **Tabela Consolidada de Desempenho:** Confronto direto entre ganho (retorno) e proteção (drawdown/volatilidade de baixa).
