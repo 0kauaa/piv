@@ -1,86 +1,83 @@
-# modelos de otimização a serem trabalhados no projeto
 
-todas as restrições são iguais entre os modelos, pois traduzem o problema de otimização de portifóloio:
+# Modelos de Otimização a serem Trabalhados no Projeto
 
-- **orçamento:** a ideia é minimizar a perda dado um orçamento fixo, portanto, a soma dos pesos (quanto será investido em cada uma das carteiras) não pode ser maior que 1.
+Todas as restrições comuns traduzem o problema fundamental de alocação de portfólio sob as premissas do projeto:
 
-$$
-\sum_i^N{w_u} = 1
-$$
+* **Orçamento:** A soma dos pesos investidos não pode exceder 1 (100% do capital).
+  $$
+  \sum_i^N w_i = 1
+  $$
+* **Positividade:** Não são permitidas posições vendidas ( *short selling* ); os pesos devem ser não-negativos.
+  $$
+  w_i \geq 0
+  $$
+* **Retorno Mínimo:** A alocação deve atingir ou superar um patamar de retorno esperado pré-estabelecido.
+  $$
+  w^T\mu \geq R_{min}
+  $$
 
-- **positividade:** não é possível investivir valores negativos em nehuma das carteiras.
+### 1. 1/N — Benchmark Base
 
-$$
-w_i \geq 0
-$$
+* **Descrição:** Alocação ingênua com pesos iguais em todos os ativos. Serve como o piso informacional e de custo-benefício do mercado.
 
-- **retorno mínimo:** a minimização de perda deve encontrar uma distribuição de pesos que esteja de acordo com retorno esperado mínimo.
+  $$
+  w_i = \frac{1}{N}
+  $$
 
-$$
-w^T\mu \geq R_{min}
-$$
+  *(Obs.: Não envolve otimização matemática direta).*
 
+### 2. Shannon Entropy (Baseline do Artigo)
 
-1. **1/N - benchmark base**
+* **Descrição:** Maximiza a incerteza informacional clássica, forçando uma distribuição de pesos mais homogênea e livre de pressupostos paramétricos rígidos.
 
-$$
-\frac{1}{N}
-$$
+  $$
+  \max_w \left( -\sum_i w_i \ln(w_i) \right)
+  $$
 
-obs.: não há maximização nem minimização aqui.
+  **Sujeito a:**
 
-1. **Markowitz - Média-Variância**
+  $$
+  w^T\mu \geq R_{min}, \quad \sum_i w_i = 1, \quad w_i \geq 0
+  $$
 
-$$
-min_w(w^T\sum{w})
-$$
+### 3. Tsallis Entropy (Baseline do Artigo)
 
-sujeito a:
+* **Descrição:** Generalização não-extensiva controlada pelo parâmetro **$q$**, altamente sensível e adaptada para lidar com distribuições de caudas pesadas ( *fat-tails* ), típicas de criptoativos.
 
-$$
-w^T\mu \geq R_{min} \\
-\sum_i w_i = 1 \\
-w_i \geq 0
-$$
+  $$
+  \max_w \left( \frac{-\sum_i w_i^q}{q - 1} \right)
+  $$
 
-1. **Shannon Entropy**
+  **Sujeito a:**
 
-$$
-max_w(-\sum{w_i} \mathrm{ln}(w_i))
-$$
+  $$
+  w^T\mu \geq R_{min}, \quad \sum_i w_i = 1, \quad w_i \geq 0
+  $$
 
-sujeito a:
+### 4. Rényi Entropy (Inovação / Foco em Risco de Cauda)
 
-$$
-w^T\mu \geq R_{min} \\
-\sum_i w_i = 1 \\
-w_i \geq 0
-$$
+* **Descrição:** Generalização informacional parametrizada por **$\alpha$**. Permite modular a sensibilidade do modelo para focar na mitigação de perdas extremas ou na captura de ganho.
 
-1. **Tsallis Entropy**
+  $$
+  \max_w \left( \frac{1}{1 - \alpha} \ln \left( \sum_i w_i^\alpha \right) \right)
+  $$
 
-$$
-max_w(\frac{-\sum_i{w_i^q}}{q - 1})
-$$
+  **Sujeito a:**
 
-sujeito a:
+  $$
+  w^T\mu \geq R_{min}, \quad \sum_i w_i = 1, \quad w_i \geq 0
+  $$
 
-$$
-w^T\mu \geq R_{min} \\
-\sum_i w_i = 1 \\
-w_i \geq 0
-$$
+### 5. Kullback-Leibler Divergence / Entropia Relativa (Inovação / Controle Estrutural)
 
-1. **Weighted Shannon Entropy**
+* **Descrição:** Minimiza a distância informacional entre os pesos resultantes da otimização e uma distribuição de referência prévia (**$p_i$**, como o próprio **$1/N$** ou  *Market Cap* ), impedindo alocações extremas ou "alucinações" do otimizador.
 
-$$
-max_w(-\sum_i{u_i w_i \mathrm{ln}(w_i)})
-$$
+  $$
+  \min_w \left( \sum_i w_i \ln\left(\frac{w_i}{p_i}\right) \right)
+  $$
 
-sujeito a:
+  **Sujeito a:**
 
-$$
-w^T\mu \geq R_{min} \\
-\sum_i w_i = 1 \\
-w_i \geq 0
-$$
+  $$
+  w^T\mu \geq R_{min}, \quad \sum_i w_i = 1, \quad w_i \geq 0
+  $$
