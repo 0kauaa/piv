@@ -217,19 +217,41 @@ def salvar(df, arquivo):
     print(f"salvo em {arquivo}")
 
 
+CENARIOS = {
+    # nome: fator_var. agressivo = teto permissivo (Frente A, captura de ganho);
+    # conservador = teto restritivo (Frente B, resiliência em stress).
+    # mesmo rho nos dois (fator_meta=0.5): a diferença vem só do teto, para que
+    # o artigo compare o comportamento do backtest nos dois tetos. risco e ganho
+    # são eixos separados — o conservador tende ao colapso em carteira-base
+    # (achado empírico, não falha): documentar a taxa de fallback, não escondê-la.
+    "agressivo": 2.0,
+    "conservador": 1.0,
+}
+
+SUFIJO_ARQUIVO = {
+    # agressivo mantém os nomes canônicos (compatibilidade); conservador usa sufixo.
+    "agressivo": "",
+    "conservador": "-var1.0",
+}
+
+
 if __name__ == "__main__":
     retornos = carregar_retornos()
-    retornos_liquidos, pesos_series = backtest(retornos)
 
-    curvas = curva_acumulada(retornos_liquidos)
-    tabela = metricas(retornos_liquidos)
+    for nome, fvar in CENARIOS.items():
+        suf = SUFIJO_ARQUIVO[nome]
+        retornos_liquidos, pesos_series = backtest(retornos, fator_var=fvar)
 
-    print(retornos_liquidos.head())
-    print("\ntabela de metricas:")
-    print(tabela.round(4).to_string())
-    print("\ncurva acumulada (final):")
-    print(curvas.iloc[-1].round(4).to_string())
+        curvas = curva_acumulada(retornos_liquidos)
+        tabela = metricas(retornos_liquidos)
 
-    salvar(retornos_liquidos, PASTA_RESULTADOS / "retornos-backtest.csv")
-    salvar(curvas, PASTA_RESULTADOS / "curvas-acumuladas.csv")
-    salvar(tabela, PASTA_RESULTADOS / "tabela-metricas.csv")
+        print(f"\n===== cenário {nome} (fator_var={fvar}) =====")
+        print(retornos_liquidos.head())
+        print("\ntabela de metricas:")
+        print(tabela.round(4).to_string())
+        print("\ncurva acumulada (final):")
+        print(curvas.iloc[-1].round(4).to_string())
+
+        salvar(retornos_liquidos, PASTA_RESULTADOS / f"retornos-backtest{suf}.csv")
+        salvar(curvas, PASTA_RESULTADOS / f"curvas-acumuladas{suf}.csv")
+        salvar(tabela, PASTA_RESULTADOS / f"tabela-metricas{suf}.csv")

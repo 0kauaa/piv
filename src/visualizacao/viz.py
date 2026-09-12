@@ -177,23 +177,42 @@ def grafico_pesos(pesos_series, arquivo):
     print(f"salvo em {arquivo}")
 
 
-def gerar_todos():
-    """gera todas as figuras a partir dos arquivos de `resultados/`."""
+CENARIOS = {
+    # sufixo de arquivo -> fator_var usado para recomputar os pesos.
+    # "" = agressivo (fvar=2.0, nomes canônicos); "-var1.0" = conservador.
+    "": 2.0,
+    "-var1.0": 1.0,
+}
+
+
+def gerar_todos(sufixo=""):
+    """gera todas as figuras de um cenário a partir dos arquivos de `resultados/`."""
     PASTA_GRAFICOS.mkdir(parents=True, exist_ok=True)
 
-    retornos = carregar_retornos()
-    curvas = carregar_curvas()
-    metricas = carregar_metricas()
+    retornos = pd.read_csv(PASTA_RESULTADOS / f"retornos-backtest{sufixo}.csv", index_col="Date", parse_dates=True)
+    curvas = pd.read_csv(PASTA_RESULTADOS / f"curvas-acumuladas{sufixo}.csv", index_col="Date", parse_dates=True)
+    metricas = pd.read_csv(PASTA_RESULTADOS / f"tabela-metricas{sufixo}.csv", index_col=0)
 
-    grafico_curvas(curvas, PASTA_GRAFICOS / "curvas-acumuladas.png")
-    grafico_drawdown(curvas, PASTA_GRAFICOS / "drawdown.png")
-    grafico_retornos(retornos, PASTA_GRAFICOS / "retornos-semanais.png")
-    grafico_metricas(metricas, PASTA_GRAFICOS / "metricas.png")
+    grafico_curvas(curvas, PASTA_GRAFICOS / f"curvas-acumuladas{sufixo}.png")
+    grafico_drawdown(curvas, PASTA_GRAFICOS / f"drawdown{sufixo}.png")
+    grafico_retornos(retornos, PASTA_GRAFICOS / f"retornos-semanais{sufixo}.png")
+    grafico_metricas(metricas, PASTA_GRAFICOS / f"metricas{sufixo}.png")
 
-    _, pesos_series = backtest(pd.read_csv(ARQUIVO_RETORNOS_PREP, index_col="Date", parse_dates=True))
-    grafico_pesos(pesos_series, PASTA_GRAFICOS / "pesos.png")
+    _, pesos_series = backtest(
+        pd.read_csv(ARQUIVO_RETORNOS_PREP, index_col="Date", parse_dates=True),
+        fator_var=CENARIOS[sufixo],
+    )
+    grafico_pesos(pesos_series, PASTA_GRAFICOS / f"pesos{sufixo}.png")
+
+
+def gerar_cenarios():
+    """gera as figuras dos dois cenários (agressivo + conservador)."""
+    for sufixo in CENARIOS:
+        rotulo = sufixo if sufixo else "(agressivo)"
+        print(f"===== cenário sufixo={rotulo} =====")
+        gerar_todos(sufixo)
 
 
 if __name__ == "__main__":
     _estilo()
-    gerar_todos()
+    gerar_cenarios()
