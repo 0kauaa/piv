@@ -65,14 +65,15 @@ def pesos_nomeados(mu_series, rho, u=None, cov=None, sigma2_max=None, eps=1e-10)
     w = pesos_wse(mu, rho, u, cov, sigma2_max, eps)
     return pd.Series(w, index=mu_series.index)
 
-def carteira_base(mu_series, u=None, eps=1e-10):
-    """solução MaxEnt irrestrita (sem restrição de retorno).
+def carteira_base(mu_series, u=None, cov=None, sigma2_max=None, eps=1e-10):
+    """solução MaxEnt irrestrita no retorno (sem restrição de retorno).
 
     para WSE com u != 1, o máximo de entropia ponderada não é uniforme:
     w_i ∝ exp(-1/u_i) define a prioridade informacional dos ativos.
+    variância-ciente: se sigma2_max dado, respeita o teto.
     """
     rho_base = float(mu_series.min() - 1.0)
-    return pesos_nomeados(mu_series, rho_base, u=u, eps=eps)
+    return pesos_nomeados(mu_series, rho_base, u=u, cov=cov, sigma2_max=sigma2_max, eps=eps)
 
 
 def entropia_wse(w, u=None):

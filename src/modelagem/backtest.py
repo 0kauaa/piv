@@ -50,7 +50,7 @@ MODELOS = {
 }
 
 BASES = {
-    "1/N": lambda mu: pesos_ingenuo(mu.index),
+    "1/N": lambda mu, cov=None, sigma2_max=None: pesos_ingenuo(mu.index),
     "shannon": base_shannon,
     "tsallis": base_tsallis,
     "renyi": base_renyi,
@@ -98,7 +98,15 @@ def _resolver(nome, mu_series, rho, cov, sigma2_max):
         if nome == "kl":
             return pesos_kl(mu_series, rho, cov=cov, sigma2_max=sigma2_max)
     except (ValueError, RuntimeError):
-        return BASES[nome](mu_series)
+        pass
+    # fallback em dois níveis: (1) base MaxEnt irrestrita no retorno mas
+    # variância-ciente (respeita o teto quando há ponto factível); (2) 1/N
+    # uniforme quando nem a base respeita o teto (conjunto vazio — inevitável,
+    # documentar a taxa em vez de escondê-la).
+    try:
+        return BASES[nome](mu_series, cov=cov, sigma2_max=sigma2_max)
+    except (ValueError, RuntimeError):
+        return pesos_ingenuo(mu_series.index)
     raise ValueError(f"modelo desconhecido: {nome}")
 
 
@@ -178,6 +186,8 @@ def metricas(retornos, rf=0.0):
     """calcula retorno acumulado/anualizado, sharpe, sortino e max drawdown.
 
     retornos: DataFrame com retornos semanais por coluna (estratégia).
+    sortino usa downside deviation vs alvo 0 (não desvio-padrão da subsample
+    negativa): dd = sqrt(mean(min(0, r)^2)) * sqrt(52). se dd=0, sortino=NaN.
     """
     n_semanas = 52
     acumulado = (1.0 + retornos).prod() - 1.0
@@ -186,9 +196,11 @@ def metricas(retornos, rf=0.0):
     vol = retornos.std() * np.sqrt(n_semanas)
     sharpe = (medidas - rf) / vol
 
-    alvo = retornos[retornos < 0].std()
-    desvio_baixa_anual = alvo * np.sqrt(n_semanas)
-    sortino = (medidas - rf) / desvio_baixa_anual
+    alvo = (retornos.clip(upper=0.0) ** 2).mean()
+    desvio_baixa_anual = np.sqrt(alvo) * np.sqrt(n_semanas)
+    with np.errstate(divide="ignore", invalid="ignore"):
+        sortino = (medidas - rf) / desvio_baixa_anual
+    sortino = sortino.replace([np.inf, -np.inf], np.nan)
 
     mdd = mdd_de(retornos)
 

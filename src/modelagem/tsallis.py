@@ -56,10 +56,13 @@ def pesos_nomeados(mu_series, rho, q=2.0, cov=None, sigma2_max=None, eps=1e-10):
     w = pesos_tsallis(mu, rho, q, cov, sigma2_max, eps)
     return pd.Series(w, index=mu_series.index)
 
-def carteira_base(mu_series, q=2.0, eps=1e-10):
-    """solução MaxEnt irrestrita (sem restrição de retorno): 1/N."""
+def carteira_base(mu_series, q=2.0, cov=None, sigma2_max=None, eps=1e-10):
+    """solução MaxEnt irrestrita no retorno (sem restrição de retorno): 1/N.
+
+    variância-ciente: se sigma2_max dado, respeita o teto.
+    """
     rho_base = float(mu_series.min() - 1.0)
-    return pesos_nomeados(mu_series, rho_base, q=q, eps=eps)
+    return pesos_nomeados(mu_series, rho_base, q=q, cov=cov, sigma2_max=sigma2_max, eps=eps)
 
 def entropia_tsallis(w, q=2.0):
     w = np.asarray(w, dtype=float)

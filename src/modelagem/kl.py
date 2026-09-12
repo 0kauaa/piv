@@ -66,14 +66,15 @@ def pesos_nomeados(mu_series, rho, p=None, cov=None, sigma2_max=None, eps=1e-10)
     w = pesos_kl(mu, rho, p, cov, sigma2_max, eps)
     return pd.Series(w, index=mu_series.index)
 
-def carteira_base(mu_series, p=None, eps=1e-10):
-    """solução MaxEnt irrestrita (sem restrição de retorno).
+def carteira_base(mu_series, p=None, cov=None, sigma2_max=None, eps=1e-10):
+    """solução MaxEnt irrestrita no retorno (sem restrição de retorno).
 
     para KL, a divergência mínima com restrição apenas de orçamento é
     w = p (a referência), independentemente de mu.
+    variância-ciente: se sigma2_max dado, respeita o teto quando factível.
     """
     rho_base = float(mu_series.min() - 1.0)
-    return pesos_nomeados(mu_series, rho_base, p=p, eps=eps)
+    return pesos_nomeados(mu_series, rho_base, p=p, cov=cov, sigma2_max=sigma2_max, eps=eps)
 
 
 def divergencia_kl(w, p=None):

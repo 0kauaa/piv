@@ -54,10 +54,14 @@ def pesos_nomeados(mu_series, alpha, cov=None, sigma2_max=None, eps=1e-10):
     w = pesos_shannon(mu, alpha, cov, sigma2_max, eps)
     return pd.Series(w, index=mu_series.index)
 
-def carteira_base(mu_series, eps=1e-10):
-    """solução MaxEnt irrestrita (sem restrição de retorno): 1/N."""
+def carteira_base(mu_series, cov=None, sigma2_max=None, eps=1e-10):
+    """solução MaxEnt irrestrita no retorno (sem restrição de retorno): 1/N.
+
+    variância-ciente: se sigma2_max dado, respeita o teto (retorna o ponto de
+    máxima entropia dentro do teto quando o uniforme o viola).
+    """
     alpha_base = float(mu_series.min() - 1.0)
-    return pesos_nomeados(mu_series, alpha_base, eps=eps)
+    return pesos_nomeados(mu_series, alpha_base, cov=cov, sigma2_max=sigma2_max, eps=eps)
 
 if __name__ == "__main__":
     retornos = carregar_retornos_simples()
