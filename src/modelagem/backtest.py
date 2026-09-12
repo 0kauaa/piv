@@ -14,9 +14,10 @@ proporcionais a variacao absoluta dos pesos (|Delta w|).
 a meta de retorno rho e dinâmica e relativa ao regime: exigir um percentual
 fixo tornaria a restricao infactivel em bear markets (como diagnosticado na
 auditoria). aqui rho e definido como uma fracao do retorno que o proprio
-benchmark 1/N obteve na janela de treinamento, com piso em uma taxa livre de
-risco semanal — a restricao se adapta ao regime e permanece factivel e
-vinculante em todos os ciclos.
+benchmark 1/N obteve na janela de treinamento — sem piso em taxa livre de
+risco, para que a meta acompanhe o mercado inclusive quando negativa e a
+restricao de retorno permaneça factivel em todos os ciclos (a infactibilidade
+restante vem só do teto de variância, operado em cenários separados).
 
 todos os retornos usados sao aritmeticos (simples): a estimacao de mu, a
 matriz de covariância, a execucao do portfólio e a acumulacao de capital.
@@ -62,22 +63,24 @@ def carregar_retornos(arquivo=ARQUIVO_RETORNOS):
     return pd.read_csv(arquivo, index_col="Date", parse_dates=True)
 
 
-def meta_retorno(mu, fator=0.5, rf_semanal=0.0):
+def meta_retorno(mu, fator=0.5, rf_semanal=None):
     """rho dinâmico, relativo ao benchmark 1/N da janela.
 
-    rho = max(rf_semanal, retorno_1N + fator * (max(mu) - retorno_1N)),
+    rho = retorno_1N + fator * (max(mu) - retorno_1N),
     onde retorno_1N = mu @ w_1N e w_1N = 1/N.
 
     o alvo fica entre o retorno esperado do benchmark e o melhor ativo da
-    janela: (i) sempre factivel (<= max(mu)); (ii) vinculante quando ha
-    dispersao (> retorno_1N); (iii) adapta-se ao regime — em bear markets os
-    dois extremos sao negativos e a meta acompanha o mercado, mantendo o
-    otimizador ativo (diferencia a frente B nos periodos estressados).
-    o piso rf_semanal protege o caso limite de janela sem dispersao.
+    janela: (i) sempre factivel quanto a retorno (<= max(mu)); (ii) vinculante
+    quando ha dispersao (> retorno_1N); (iii) adapta-se ao regime — em bear
+    markets os dois extremos sao negativos e a meta acompanha o mercado,
+    mantendo o otimizador ativo (diferencia a frente B nos periodos
+    estressados). sem piso em rf: o piso transformava bears profundos em
+    30+ janelas infactiveis (rho=0 > max(mu)<0) com colapso em carteira-base.
+    rf_semanal e mantido na assinatura por compatibilidade, mas ignorado.
     """
     retorno_1n = mu @ np.full(len(mu), 1.0 / len(mu))
     excesso = mu.max() - retorno_1n
-    return max(rf_semanal, retorno_1n + fator * excesso)
+    return retorno_1n + fator * excesso
 
 
 def _resolver(nome, mu_series, rho, cov, sigma2_max):
@@ -118,13 +121,16 @@ def backtest(
     modelo, indexado pelas datas das semanas de teste.
     pesos_series: dict nome -> DataFrame com os pesos aplicados a cada semana.
 
-    rho dinâmico: meta_retorno(mu, fator_meta, rf_semanal).
+    rho dinâmico: meta_retorno(mu, fator_meta) — sem piso em rf, pode ser
+    negativo em bears para preservar factibilidade (rf_semanal mantido na
+    assinatura por compatibilidade, mas ignorado).
     restrição de variância: sigma2_max = fator_var * variância do 1/N na
     janela. o default fator_var=2.0 admite risco até o dobro do benchmark nas
-    janelas onde a dispersão justifica concentração (a calibração mostrou que
-    fator_var=1.0 deixa ~2/3 das janelas infactíveis e fator_var=3.0 nunca
-    ativa a restrição; fator_var=2.0 mantém ~80% das janelas ativas mantendo
-    a restrição como guardrail de risco).
+    janelas onde a dispersão justifica concentração (cenário upside da Frente A;
+    o cenário downside com fator_var<=1.0 e avaliado em separado — ver notas).
+    a calibração antiga com piso rf=0 mostrava fator_var=1.0 com ~2/3 das
+    janelas infactíveis; sem o piso, a factibilidade de retorno e total e a
+    infactibilidade restante vem só da variância.
     """
     modelos = modelos or list(MODELOS)
 
