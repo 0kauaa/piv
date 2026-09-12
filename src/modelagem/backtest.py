@@ -211,6 +211,43 @@ def mdd_de(retornos):
     return drawdown.min()
 
 
+REGIMES = [
+    # blocos do OOS espelhando os regimes do artigo + cauda final.
+    # expansão: fim do bull 2021; stress: bear 2022; recuperação: 2023–2025-03;
+    # cauda: 2025-04 em diante (topo e correção recente).
+    ("expansao", "2021-04-16", "2021-12-31"),
+    ("stress", "2022-01-01", "2022-12-31"),
+    ("recuperacao", "2023-01-01", "2025-03-31"),
+    ("cauda", "2025-04-01", "2026-04-03"),
+]
+
+
+def metricas_por_regime(retornos_liquidos):
+    """métricas de cada modelo dentro de cada bloco de regime.
+
+    retorna DataFrame longo [regime, modelo, *métricas, n_semanas].
+    o max_drawdown aqui é intra-bloco (a partir de base 1 no início do bloco),
+    não o global — serve à Frente B condicional, não ao MDD total.
+    o retorno anualizado em blocos curtos extrapola (52/n); ver n_semanas.
+    """
+    linhas = []
+    for regime, inicio, fim in REGIMES:
+        bloco = retornos_liquidos.loc[inicio:fim]
+        if bloco.empty:
+            continue
+        tab = metricas(bloco)
+        for modelo in tab.index:
+            linhas.append(
+                {
+                    "regime": regime,
+                    "modelo": modelo,
+                    "n_semanas": len(bloco),
+                    **tab.loc[modelo].to_dict(),
+                }
+            )
+    return pd.DataFrame(linhas).set_index(["regime", "modelo"]).sort_index()
+
+
 def salvar(df, arquivo):
     arquivo.parent.mkdir(parents=True, exist_ok=True)
     df.to_csv(arquivo)
@@ -252,6 +289,11 @@ if __name__ == "__main__":
         print("\ncurva acumulada (final):")
         print(curvas.iloc[-1].round(4).to_string())
 
+        por_regime = metricas_por_regime(retornos_liquidos)
+        print("\nmetricas por regime (acumulado / sharpe / mdd intra-bloco):")
+        print(por_regime[["retorno_acumulado", "sharpe", "max_drawdown"]].round(4).to_string())
+
         salvar(retornos_liquidos, PASTA_RESULTADOS / f"retornos-backtest{suf}.csv")
         salvar(curvas, PASTA_RESULTADOS / f"curvas-acumuladas{suf}.csv")
         salvar(tabela, PASTA_RESULTADOS / f"tabela-metricas{suf}.csv")
+        salvar(por_regime, PASTA_RESULTADOS / f"tabela-metricas-por-regime{suf}.csv")
