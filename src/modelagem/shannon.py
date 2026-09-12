@@ -12,7 +12,7 @@ import numpy as np
 import pandas as pd
 from scipy.optimize import minimize
 
-from ingenuo import carregar_retornos
+from ingenuo import carregar_retornos_simples, ponto_inicial, restricoes_padrao
 
 def _objetivo(w):
     return np.sum(w * np.log(w))
@@ -20,29 +20,23 @@ def _objetivo(w):
 def _gradiente(w):
     return np.log(w) + 1.0
 
-def pesos_shannon(mu, alpha, eps=1e-10):
+def pesos_shannon(mu, alpha, cov=None, sigma2_max=None, eps=1e-10):
     mu = np.asarray(mu, dtype=float)
     n = len(mu)
 
     uniforme = np.full(n, 1.0 / n)
-
-    if alpha <= mu @ uniforme:
-        return uniforme
 
     if alpha > mu.max():
         raise ValueError(
             f"α {alpha:.6f} > max(μ) {mu.max():.6f}: restrição de retorno infactível"
         )
 
-    restricoes = [
-        {"type": "eq", "fun": lambda w: np.sum(w) - 1.0},
-        {"type": "ineq", "fun": lambda w: mu @ w - alpha},
-    ]
+    restricoes = restricoes_padrao(mu, alpha, cov, sigma2_max)
     limites = [(eps, 1.0)] * n
 
     resultado = minimize(
         _objetivo,
-        x0=uniforme,
+        x0=ponto_inicial(mu, alpha, cov, sigma2_max),
         jac=_gradiente,
         bounds=limites,
         constraints=restricoes,
@@ -55,13 +49,18 @@ def pesos_shannon(mu, alpha, eps=1e-10):
 
     return resultado.x
 
-def pesos_nomeados(mu_series, alpha, eps=1e-10):
+def pesos_nomeados(mu_series, alpha, cov=None, sigma2_max=None, eps=1e-10):
     mu = mu_series.to_numpy()
-    w = pesos_shannon(mu, alpha, eps)
+    w = pesos_shannon(mu, alpha, cov, sigma2_max, eps)
     return pd.Series(w, index=mu_series.index)
 
+def carteira_base(mu_series, eps=1e-10):
+    """solução MaxEnt irrestrita (sem restrição de retorno): 1/N."""
+    alpha_base = float(mu_series.min() - 1.0)
+    return pesos_nomeados(mu_series, alpha_base, eps=eps)
+
 if __name__ == "__main__":
-    retornos = carregar_retornos()
+    retornos = carregar_retornos_simples()
     mu = retornos.mean()
     r_uniforme = mu @ np.full(len(mu), 1.0 / len(mu))
 

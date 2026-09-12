@@ -13,8 +13,9 @@ import numpy as np
 import pandas as pd
 from scipy.optimize import minimize
 
-from ingenuo import carregar_retornos, ponto_inicial
+from ingenuo import carregar_retornos_simples, ponto_inicial, restricoes_padrao
 
+U_PADRAO = (0.35, 0.30, 0.20, 0.15)
 
 def _objetivo(w, u):
     return np.sum(u * w * np.log(w))
@@ -24,33 +25,27 @@ def _gradiente(w, u):
     return u * (np.log(w) + 1.0)
 
 
-def pesos_wse(mu, rho, u=None, eps=1e-10):
+def pesos_wse(mu, rho, u=None, cov=None, sigma2_max=None, eps=1e-10):
     mu = np.asarray(mu, dtype=float)
     n = len(mu)
 
     if u is None:
-        u = np.ones(n)
+        u = np.asarray(U_PADRAO, dtype=float)
+        if len(u) != n:
+            u = np.ones(n)
     u = np.asarray(u, dtype=float)
-
-    uniforme = np.full(n, 1.0 / n)
-
-    if rho <= mu @ uniforme:
-        return uniforme
 
     if rho > mu.max():
         raise ValueError(
             f"ρ {rho:.6f} > max(mu) {mu.max():.6f}: restrição de retorno infactível"
         )
 
-    restricoes = [
-        {"type": "eq", "fun": lambda w: np.sum(w) - 1.0},
-        {"type": "ineq", "fun": lambda w: mu @ w - rho},
-    ]
+    restricoes = restricoes_padrao(mu, rho, cov, sigma2_max)
     limites = [(eps, 1.0)] * n
 
     resultado = minimize(
         _objetivo,
-        x0=ponto_inicial(mu, rho),
+        x0=ponto_inicial(mu, rho, cov, sigma2_max),
         args=(u,),
         jac=_gradiente,
         bounds=limites,
@@ -65,27 +60,38 @@ def pesos_wse(mu, rho, u=None, eps=1e-10):
     return resultado.x
 
 
-def pesos_nomeados(mu_series, rho, u=None, eps=1e-10):
+def pesos_nomeados(mu_series, rho, u=None, cov=None, sigma2_max=None, eps=1e-10):
     mu = mu_series.to_numpy()
-    w = pesos_wse(mu, rho, u, eps)
+    w = pesos_wse(mu, rho, u, cov, sigma2_max, eps)
     return pd.Series(w, index=mu_series.index)
+
+def carteira_base(mu_series, u=None, eps=1e-10):
+    """solução MaxEnt irrestrita (sem restrição de retorno).
+
+    para WSE com u != 1, o máximo de entropia ponderada não é uniforme:
+    w_i ∝ exp(-1/u_i) define a prioridade informacional dos ativos.
+    """
+    rho_base = float(mu_series.min() - 1.0)
+    return pesos_nomeados(mu_series, rho_base, u=u, eps=eps)
 
 
 def entropia_wse(w, u=None):
     w = np.asarray(w, dtype=float)
     if u is None:
-        u = np.ones(len(w))
+        u = np.asarray(U_PADRAO, dtype=float)
+        if len(u) != len(w):
+            u = np.ones(len(w))
     return -np.sum(np.asarray(u, dtype=float) * w * np.log(w))
 
 
 if __name__ == "__main__":
-    retornos = carregar_retornos()
+    retornos = carregar_retornos_simples()
     mu = retornos.mean()
     r_uniforme = mu @ np.full(len(mu), 1.0 / len(mu))
     ativos = retornos.columns
 
     for rho in [0.0, r_uniforme, 0.012, 0.014]:
-        u_teste = {"uniforme": None, "btc-eth favoritos": [3.0, 2.0, 1.0, 1.0]}
+        u_teste = {"market-cap (default)": None, "uniforme": [1.0] * len(ativos)}
         for nome, u in u_teste.items():
             pesos = pesos_nomeados(mu, rho, u)
             print(f"ρ = {rho:.4f} | u = {nome}:")

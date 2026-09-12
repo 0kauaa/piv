@@ -14,8 +14,9 @@ import numpy as np
 import pandas as pd
 from scipy.optimize import minimize
 
-from ingenuo import carregar_retornos, ponto_inicial
+from ingenuo import carregar_retornos_simples, ponto_inicial, restricoes_padrao
 
+P_PADRAO = (0.50, 0.25, 0.15, 0.10)
 
 def _objetivo(w, p):
     return np.sum(w * np.log(w / p))
@@ -25,33 +26,27 @@ def _gradiente(w, p):
     return np.log(w / p) + 1.0
 
 
-def pesos_kl(mu, rho, p=None, eps=1e-10):
+def pesos_kl(mu, rho, p=None, cov=None, sigma2_max=None, eps=1e-10):
     mu = np.asarray(mu, dtype=float)
     n = len(mu)
 
     if p is None:
-        p = np.full(n, 1.0 / n)
+        p = np.asarray(P_PADRAO, dtype=float)
+        if len(p) != n:
+            p = np.full(n, 1.0 / n)
     p = np.asarray(p, dtype=float)
-
-    uniforme = np.full(n, 1.0 / n)
-
-    if rho <= mu @ uniforme:
-        return uniforme
 
     if rho > mu.max():
         raise ValueError(
             f"ρ {rho:.6f} > max(mu) {mu.max():.6f}: restrição de retorno infactível"
         )
 
-    restricoes = [
-        {"type": "eq", "fun": lambda w: np.sum(w) - 1.0},
-        {"type": "ineq", "fun": lambda w: mu @ w - rho},
-    ]
+    restricoes = restricoes_padrao(mu, rho, cov, sigma2_max)
     limites = [(eps, 1.0)] * n
 
     resultado = minimize(
         _objetivo,
-        x0=ponto_inicial(mu, rho),
+        x0=ponto_inicial(mu, rho, cov, sigma2_max),
         args=(p,),
         jac=_gradiente,
         bounds=limites,
@@ -66,25 +61,36 @@ def pesos_kl(mu, rho, p=None, eps=1e-10):
     return resultado.x
 
 
-def pesos_nomeados(mu_series, rho, p=None, eps=1e-10):
+def pesos_nomeados(mu_series, rho, p=None, cov=None, sigma2_max=None, eps=1e-10):
     mu = mu_series.to_numpy()
-    w = pesos_kl(mu, rho, p, eps)
+    w = pesos_kl(mu, rho, p, cov, sigma2_max, eps)
     return pd.Series(w, index=mu_series.index)
+
+def carteira_base(mu_series, p=None, eps=1e-10):
+    """solução MaxEnt irrestrita (sem restrição de retorno).
+
+    para KL, a divergência mínima com restrição apenas de orçamento é
+    w = p (a referência), independentemente de mu.
+    """
+    rho_base = float(mu_series.min() - 1.0)
+    return pesos_nomeados(mu_series, rho_base, p=p, eps=eps)
 
 
 def divergencia_kl(w, p=None):
     w = np.asarray(w, dtype=float)
     if p is None:
-        p = np.full(len(w), 1.0 / len(w))
+        p = np.asarray(P_PADRAO, dtype=float)
+        if len(p) != len(w):
+            p = np.full(len(w), 1.0 / len(w))
     return np.sum(w * np.log(w / np.asarray(p, dtype=float)))
 
 
 if __name__ == "__main__":
-    retornos = carregar_retornos()
+    retornos = carregar_retornos_simples()
     mu = retornos.mean()
     r_uniforme = mu @ np.full(len(mu), 1.0 / len(mu))
 
-    p_teste = {"1/n": None, "market-cap-like": [0.50, 0.30, 0.10, 0.10]}
+    p_teste = {"dominância BTC (default)": None, "1/n": [0.25, 0.25, 0.25, 0.25]}
     for rho in [0.0, r_uniforme, 0.012, 0.014]:
         for nome, p in p_teste.items():
             pesos = pesos_nomeados(mu, rho, p)

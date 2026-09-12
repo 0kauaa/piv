@@ -13,7 +13,7 @@ import numpy as np
 import pandas as pd
 from scipy.optimize import minimize
 
-from ingenuo import carregar_retornos, ponto_inicial
+from ingenuo import carregar_retornos_simples, ponto_inicial, restricoes_padrao
 
 
 def _objetivo(w, alfa):
@@ -26,29 +26,21 @@ def _gradiente(w, alfa):
     return -alfa * w ** (alfa - 1.0) / ((1.0 - alfa) * soma)
 
 
-def pesos_renyi(mu, rho, alfa=2.0, eps=1e-10):
+def pesos_renyi(mu, rho, alfa=3.0, cov=None, sigma2_max=None, eps=1e-10):
     mu = np.asarray(mu, dtype=float)
     n = len(mu)
-
-    uniforme = np.full(n, 1.0 / n)
-
-    if rho <= mu @ uniforme:
-        return uniforme
 
     if rho > mu.max():
         raise ValueError(
             f"ρ {rho:.6f} > max(mu) {mu.max():.6f}: restrição de retorno infactível"
         )
 
-    restricoes = [
-        {"type": "eq", "fun": lambda w: np.sum(w) - 1.0},
-        {"type": "ineq", "fun": lambda w: mu @ w - rho},
-    ]
+    restricoes = restricoes_padrao(mu, rho, cov, sigma2_max)
     limites = [(eps, 1.0)] * n
 
     resultado = minimize(
         _objetivo,
-        x0=ponto_inicial(mu, rho),
+        x0=ponto_inicial(mu, rho, cov, sigma2_max),
         args=(alfa,),
         jac=_gradiente,
         bounds=limites,
@@ -63,10 +55,15 @@ def pesos_renyi(mu, rho, alfa=2.0, eps=1e-10):
     return resultado.x
 
 
-def pesos_nomeados(mu_series, rho, alfa=2.0, eps=1e-10):
+def pesos_nomeados(mu_series, rho, alfa=3.0, cov=None, sigma2_max=None, eps=1e-10):
     mu = mu_series.to_numpy()
-    w = pesos_renyi(mu, rho, alfa, eps)
+    w = pesos_renyi(mu, rho, alfa, cov, sigma2_max, eps)
     return pd.Series(w, index=mu_series.index)
+
+def carteira_base(mu_series, alfa=3.0, eps=1e-10):
+    """solução MaxEnt irrestrita (sem restrição de retorno): 1/N."""
+    rho_base = float(mu_series.min() - 1.0)
+    return pesos_nomeados(mu_series, rho_base, alfa=alfa, eps=eps)
 
 
 def entropia_renyi(w, alfa=2.0):
@@ -75,7 +72,7 @@ def entropia_renyi(w, alfa=2.0):
 
 
 if __name__ == "__main__":
-    retornos = carregar_retornos()
+    retornos = carregar_retornos_simples()
     mu = retornos.mean()
     r_uniforme = mu @ np.full(len(mu), 1.0 / len(mu))
 

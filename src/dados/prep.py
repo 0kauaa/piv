@@ -2,7 +2,8 @@
 
 1. alinhamento temporal (resample semanal + forward fill + dropna)
 2. uso do preço ajustado (Close ajustado do yfinance)
-3. retornos logarítmicos
+3. retornos logarítmicos (para estimação interna de µ) e
+   retornos simples (para execução do portfólio e acumulação de capital)
 4. outliers preservados (sem winsorização)
 """
 
@@ -19,6 +20,7 @@ PASTA_PREP = DADOS / "prep"
 ARQUIVO_BRUTO = PASTA_BRUTOS / "precos-semanais.csv"
 ARQUIVO_ALINHADO = PASTA_PREP / "precos-alinhados-semanais.csv"
 ARQUIVO_RETORNOS = PASTA_PREP / "retornos-log-semanais.csv"
+ARQUIVO_RETORNOS_SIMPLES = PASTA_PREP / "retornos-simples-semanais.csv"
 
 CRIPTO = ["BTC-USD", "ETH-USD", "SOL-USD", "BNB-USD"]
 FREQ_SEMANAL = "W-FRI"
@@ -42,6 +44,10 @@ def alinhar(preco, freq=FREQ_SEMANAL):
 def retornos_log(preco):
     """retornos logarítmicos: ln(P_t / P_{t-1})."""
     return np.log(preco / preco.shift(1)).dropna()
+
+def retornos_simples(preco):
+    """retornos de um período: (P_t / P_{t-1}) - 1."""
+    return preco.pct_change().dropna()
 
 def padronizar_colunas(df):
     return df[CRIPTO]
@@ -72,3 +78,8 @@ if __name__ == "__main__":
     print("retornos logaritmicos:")
     resumo(retornos)
     salvar(retornos, ARQUIVO_RETORNOS)
+
+    retornos_s = retornos_simples(alinhado)
+    print("retornos simples:")
+    resumo(retornos_s)
+    salvar(retornos_s, ARQUIVO_RETORNOS_SIMPLES)
